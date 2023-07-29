@@ -5,8 +5,10 @@ from __future__ import unicode_literals, absolute_import
 import os.path
 import shutil
 import zipfile
+import sys
 
 import records
+import jieba
 from bs4 import BeautifulSoup
 from jieba.analyse import ChineseAnalyzer
 from whoosh import scoring
@@ -14,6 +16,8 @@ from whoosh.fields import Schema, TEXT, ID
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import create_in
 from whoosh.qparser import QueryParser
+
+jieba.setLogLevel(jieba.logging.ERROR)
 
 CREATE_TABLE_SQL = """
 create table WIZ_INDEX
@@ -30,13 +34,14 @@ create table WIZ_INDEX
 
 
 class WizIndex(object):
-    def __init__(self, base_path, wiz_path):
+    def __init__(self, base_path, wiz_path, verbose=False):
         if not os.path.exists(base_path):
             os.mkdir(base_path)
 
+        self.verbose = verbose
         self.base_path = base_path
         self.index_path = os.path.join(base_path, "data")
-        self.wiz_path = wiz_path # Example: '/Users/your_name/.wiznote/your_account/data'
+        self.wiz_path = wiz_path
         self.index_db = records.Database('sqlite:///' + os.path.join(self.base_path, 'database.db'))
 
         try:
@@ -44,7 +49,8 @@ class WizIndex(object):
                 conn.query('select * from WIZ_INDEX')
         except:
             #FIXME: create table using another way
-            print('create table WIZ_INDEX')
+            if self.verbose:
+                print('create table WIZ_INDEX', file=sys.stderr)
             with self.index_db.get_connection() as conn:
                 conn.query(CREATE_TABLE_SQL)
                 conn.query('PRAGMA auto_vacuum = FULL;')
@@ -105,7 +111,8 @@ class WizIndex(object):
         idx = self.get_idx()
         writer = idx.writer()
         count = len(index_data)
-        print('total: %s' % count)
+        if self.verbose:
+            print('total: %s' % count, file=sys.stderr)
         for i, v in enumerate(index_data):
             r = v['data']
             action = v['action']
@@ -116,7 +123,8 @@ class WizIndex(object):
                     try:
                         data = zf.read(filename)
                         html_content = BeautifulSoup(data, 'html5lib')
-                        print('%s %s, %s' % (i, action, r['DOCUMENT_TITLE']))
+                        if self.verbose:
+                            print('%s %s, %s' % (i, action, r['DOCUMENT_TITLE']), file=sys.stderr)
                         if action == 'insert':
                             writer.add_document(
                                 path=r['DOCUMENT_GUID'],
@@ -155,7 +163,8 @@ class WizIndex(object):
                             conn.query(sql, **params)
 
                     except Exception as e:
-                        print(e)
+                        if self.verbose:
+                            print(e, file=sys.stderr)
             else:
                 zf.close()
         writer.commit()

@@ -4,8 +4,9 @@ import json
 from core.index import WizIndex
 
 def run_index(args):
-    index = WizIndex(
-    base_path = args.folder, wiz_path = args.wiznote_data_path)
+    index = WizIndex(base_path = args.folder,
+                     wiz_path = args.wiznote_data_path,
+                     verbose=True)
     index.create_or_update_index()
 
 def run_search(args):
@@ -21,6 +22,7 @@ def main():
     shared_parser.add_argument('-O', '--folder', action='store', required=True,
                             help='The folder to place indexes.')
     # TODO: Find default WIZ_NOTE_PATH from ENV, then determin final path from account
+    # Example: '/Users/your_name/.wiznote/your_account/data'
     shared_parser.add_argument('-W', '--wiznote-data-path', action='store',
                             required=True, help='The data folder of WizNote.')
 
