@@ -2,6 +2,7 @@ import argparse
 import json
 
 from core.index import WizIndex
+from flask import Flask, request, jsonify
 
 def run_index(args):
     index = WizIndex(base_path = args.folder,
@@ -15,6 +16,19 @@ def run_search(args):
     page_num = args.page_number
     total, results = wiz_index.search(keyword, page_num)
     print(json.dumps({'total': total, 'data': results}))
+
+app = Flask("WizSearch")
+@app.route('/api/search', methods=['POST'])
+def page_search():
+    wiz_index = app.wiz_index
+    keyword = request.json.get('keyword')
+    page_num = request.json.get('page_num', 1)
+    total, results = wiz_index.search(keyword, page_num)
+    return jsonify({'code': 200, 'data': results, 'total': total, 'msg': 'ok'})
+
+def run_server(args):
+    app.wiz_index = WizIndex(base_path=args.folder, wiz_path=args.wiznote_data_path)
+    app.run(host="127.0.0.1", port=args.port)
 
 def main():
     shared_parser = argparse.ArgumentParser(add_help=False)
@@ -37,6 +51,12 @@ def main():
     search_cmd.add_argument("-p", "--page-number", type=int, default=1, help="Page number.")
     search_cmd.add_argument("keywords", nargs='*', help="Keywords to search.")
     search_cmd.set_defaults(func=run_search)
+
+    server_cmd = subparsers.add_parser("server", help="Run a search service on local machine.",
+                                       parents=[shared_parser])
+    server_cmd.add_argument('-p', '--port', default=5000, type=int,
+                           help='Run server on which port.')
+    server_cmd.set_defaults(func=run_server)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

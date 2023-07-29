@@ -27,8 +27,14 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     }
 
     // Get APIs
-    objApp = WizExplorerApp;
-    objDatabase = WizExplorerApp.Database;
+    const objApp = WizExplorerApp;
+    const objDatabase = WizExplorerApp.Database;
+    const objCommon = WizExplorerApp.CommonUI;
+    const objPlugin = channel.objects["JSPlugin"];
+    const objModule = channel.objects["JSPluginModule"];
+    const PluginPath = objPlugin.PluginPath
+    const DataPath = await objCommon.GetSpecialFolder("DataPath");
+    const USERID = await objDatabase.GetMeta("ACCOUNT", "USERID");
 
     // TODO: 检查并启动 Server
     // 绑定 RequestClose，以关闭服务器。
@@ -64,25 +70,20 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
             },
             loadPageList: function (pageNum = 1) {
                 var self = this;
-                var postData = {
-                    'keyword': this.keyword,
-                    'page_num': pageNum
-                };
                 self.hasSearch = false;
                 self.loading = true;
-                // 这里加上随机数，避免缓存
-                axios.post('http://127.0.0.1:5000/api/search?_t=' + Math.random(), postData)
+                const userdatafolder = `${DataPath}/${USERID}/data`
+                const indexfolder = `${userdatafolder}/search`
+                const params = [
+                    `${PluginPath}/wizsearch.py`, "search",
+                    "-O", `${indexfolder}`, '-W', `${userdatafolder}`,
+                    "-p", `${pageNum}`, `${this.keyword}`]
+                console.log(params)
+                objCommon.RunExe(`${PluginPath}/venv/Scripts/python.exe`, params)
                     .then(function (response) {
-                        if (typeof response.data === 'string') {
-                            try {
-                                response.data = JSON.parse(response.data)
-                            } catch (e) {
-                                console.log(e)
-                            }
-                        }
-    
-                        self.tableData = response.data['data'];
-                        self.total = response.data['total'];
+                        result = JSON.parse(response)
+                        self.tableData = result['data'];
+                        self.total = result['total'];
                         self.hasSearch = true;
                         self.loading = false;
                     })
