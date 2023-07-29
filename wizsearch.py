@@ -18,6 +18,11 @@ def run_search(args):
     print(json.dumps({'total': total, 'data': results}))
 
 app = Flask("WizSearch")
+
+@app.route('/')
+def page_index():
+    return "Hello World"
+
 @app.route('/api/search', methods=['POST'])
 def page_search():
     wiz_index = app.wiz_index

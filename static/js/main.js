@@ -38,6 +38,14 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
 
     // TODO: 检查并启动 Server
     // 绑定 RequestClose，以关闭服务器。
+    const userdatafolder = `${DataPath}/${USERID}/data`;
+    const indexfolder = `${userdatafolder}/search`;
+    const port = "5000";
+    const params = [
+        `${PluginPath}/wizsearch.py`, "server", "--port", port,
+        "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
+    const proc = await objCommon.RunProc(`${PluginPath}/venv/Scripts/python.exe`, params)
+    window.addEventListener("beforeunload", () => proc.kill());
 
     new Vue({
         el: '#app',
@@ -72,18 +80,23 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                 var self = this;
                 self.hasSearch = false;
                 self.loading = true;
-                const userdatafolder = `${DataPath}/${USERID}/data`
-                const indexfolder = `${userdatafolder}/search`
-                const params = [
-                    `${PluginPath}/wizsearch.py`, "search",
-                    "-O", `${indexfolder}`, '-W', `${userdatafolder}`,
-                    "-p", `${pageNum}`, `${this.keyword}`]
-                console.log(params)
-                objCommon.RunExe(`${PluginPath}/venv/Scripts/python.exe`, params)
+                var postData = {
+                    'keyword': this.keyword,
+                    'page_num': pageNum
+                };
+                // 这里加上随机数，避免缓存
+                axios.post(`http://127.0.0.1:${port}/api/search?_t=` + Math.random(), postData)
                     .then(function (response) {
-                        result = JSON.parse(response)
-                        self.tableData = result['data'];
-                        self.total = result['total'];
+                        if (typeof response.data === 'string') {
+                            try {
+                                response.data = JSON.parse(response.data)
+                            } catch (e) {
+                                console.log(e)
+                            }
+                        }
+
+                        self.tableData = response.data['data'];
+                        self.total = response.data['total'];
                         self.hasSearch = true;
                         self.loading = false;
                     })
