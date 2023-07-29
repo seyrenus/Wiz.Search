@@ -1,0 +1,10 @@
+flask
+mountains
+records==0.5.3 # FIXME: records was not maintained any more.
+SQLAlchemy<1.4.0
+werkzeug
+beautifulsoup4
+whoosh
+jieba
+future
+html5lib

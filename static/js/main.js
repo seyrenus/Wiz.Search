@@ -30,6 +30,9 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     objApp = WizExplorerApp;
     objDatabase = WizExplorerApp.Database;
 
+    // TODO: 检查并启动 Server
+    // 绑定 RequestClose，以关闭服务器。
+
     new Vue({
         el: '#app',
         data: function () {
