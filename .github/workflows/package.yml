@@ -60,12 +60,12 @@ jobs:
           static/
           dist/
 
-      - name: Create Release
-        id: create_release
-        uses: ncipollo/release-action@v1
-        with:
-          name: Wiz.Search v${{ steps.release_notes.outputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "artifacts/*"
-          draft: true
-          prerelease: true
+    - name: Create Release
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Wiz.Search v${{ steps.release_notes.outputs.version }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: "artifacts/*"
+        draft: true
+        prerelease: true
