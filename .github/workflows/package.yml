@@ -1,6 +1,6 @@
 name: Build
 
-on: [push, pull_request]
+on: [push, pull_request, tags]
 
 jobs:
   build:
@@ -60,6 +60,16 @@ jobs:
           static/
           dist/
 
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'refs/tags/v')
+    steps:
+    - name: Download pre-built packages
+      uses: actions/download-artifact@v1
+      with:
+        name: Wiz.Search-*
+        path: artifacts
     - name: Create Release
       id: create_release
       uses: ncipollo/release-action@v1
