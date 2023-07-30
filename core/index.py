@@ -126,7 +126,7 @@ class WizIndex(object):
                 zf = zipfile.ZipFile(zipfilename)
             except zipfile.BadZipFile as e:
                 if self.verbose:
-                    print(e, file=sys.stderr)
+                    print("Skip encrypted document", file=sys.stderr)
                 continue
 
             for filename in zf.namelist():

@@ -40,7 +40,8 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     // 绑定 RequestClose，以关闭服务器。
     const userdatafolder = `${DataPath}/${USERID}/data`;
     const indexfolder = `${userdatafolder}/search`;
-    const port = "5000";
+    let port = await objDatabase.GetMeta("WIZSEARCH", "PORT");
+    if (port == 0) port = '5000';
     const params = [
         "server", "--port", port,
         "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
