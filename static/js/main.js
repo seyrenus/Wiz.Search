@@ -42,9 +42,9 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     const indexfolder = `${userdatafolder}/search`;
     const port = "5000";
     const params = [
-        `${PluginPath}/wizsearch.py`, "server", "--port", port,
+        "server", "--port", port,
         "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
-    const proc = await objCommon.RunProc(`${PluginPath}/venv/Scripts/python.exe`, params, false, true);
+    const proc = await objCommon.RunProc(`${PluginPath}/dist/wizsearch/wizsearch`, params, false, true);
     window.addEventListener("beforeunload", () => proc.kill());
 
     new Vue({

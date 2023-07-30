@@ -1,0 +1,56 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Create venv and install dependencies
+      run: |
+        python -m venv venv
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          .\\venv\\Scripts\\activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        else
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        fi
+
+    - name: Build with PyInstaller
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          .\\venv\\Scripts\\activate
+          pyinstaller --add-data 'venv\\Lib\\site-packages\\jieba;jieba' wizsearch.py
+        else
+          source venv/bin/activate
+          pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Wiz.Search-${{ runner.os }}
+        path: |
+          README.md
+          manifest.ini
+          index.html
+          icon.svg
+          buildindex.js
+          static/
+          dist/
+

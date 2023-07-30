@@ -7,10 +7,8 @@ const PluginPath = JSPlugin.PluginPath;
 const userdatafolder = `${DataPath}/${USERID}/data`;
 const indexfolder = `${userdatafolder}/search`;
 
-const params = [
-    `${PluginPath}/wizsearch.py`, "index",
-    "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
-
-objApp.ShowBubbleNotification("Build Index Starting", "See message console...");
-objCommon.RunProc(`${PluginPath}/venv/Scripts/python.exe`, params, true, true);
+objApp.ShowBubbleNotification("Build Index Starting",
+    "The progress can be seen in the message console. You will be alerted when the indexing is complete.");
+const params = ["index", "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
+objCommon.RunProc(`${PluginPath}/dist/wizsearch/wizsearch`, params, true, true);
 objApp.ShowBubbleNotification("Build Index Finished", "Full-text indexing is done.");
