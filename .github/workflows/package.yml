@@ -18,28 +18,35 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Create venv and install dependencies
+    - name: Create venv and install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
         python -m venv venv
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          .\\venv\\Scripts\\activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-        else
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-        fi
+        .\\venv\\Scripts\\activate
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
 
-    - name: Build with PyInstaller
+    - name: Create venv and install dependencies (Linux/MacOS)
+      if: matrix.os != 'windows-latest'
       run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          .\\venv\\Scripts\\activate
-          pyinstaller --add-data 'venv\\Lib\\site-packages\\jieba;jieba' wizsearch.py
-        else
-          source venv/bin/activate
-          pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
-        fi
+        python -m venv venv
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build with PyInstaller (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        .\\venv\\Scripts\\activate
+        pyinstaller --add-data 'venv\\Lib\\site-packages\\jieba;jieba' wizsearch.py
+
+    - name: Build with PyInstaller (Linux/MacOS)
+      if: matrix.os != 'windows-latest'
+      shell: bash
+      run: |
+        source venv/bin/activate
+        pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
