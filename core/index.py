@@ -117,7 +117,18 @@ class WizIndex(object):
             r = v['data']
             action = v['action']
             document_guid = r['DOCUMENT_GUID']
-            zf = zipfile.ZipFile(os.path.join(self.wiz_path, 'notes/{%s}' % document_guid))
+
+            zipfilename = os.path.join(self.wiz_path, 'notes/{%s}' % document_guid)
+            if not os.path.exists(zipfilename):
+                continue
+
+            try:
+                zf = zipfile.ZipFile(zipfilename)
+            except zipfile.BadZipFile as e:
+                if self.verbose:
+                    print(e, file=sys.stderr)
+                continue
+
             for filename in zf.namelist():
                 if filename == 'index.html':
                     try:

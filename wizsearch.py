@@ -9,6 +9,7 @@ def run_index(args):
                      wiz_path = args.wiznote_data_path,
                      verbose=True)
     index.create_or_update_index()
+    print("Full-text indexing is done.")
 
 def run_search(args):
     wiz_index = WizIndex(base_path=args.folder, wiz_path=args.wiznote_data_path)
@@ -20,7 +21,7 @@ def run_search(args):
 app = Flask("WizSearch")
 
 @app.route('/')
-def page_index():
+def test_page():
     return "Hello World"
 
 @app.route('/api/search', methods=['POST'])
