@@ -1,31 +1,21 @@
 # Wiz.Search
-为知笔记离线搜索
 
-## 部署 [wiz-search](https://github.com/restran/wiz-search) 
-以下为archlinux系linux的部署方式
-1. `git clone https://github.com/restran/wiz-search
-2. 安装pyenv(用来管理多版本python) `sudo pacman -S pyenv`
-3. 安装python3.7.0 `pyenv install 3.7.0`
-4. 设置wiz-search目录自动使用3.7.0版本python `cd folderOfWizSearch; pyenv local 3.7.0`
-5. 修改原wiz-search的requirements.
-```
-flask
-mountains
-SQLAlchemy==1.4.2
-records==0.5.3
-werkzeug
-beautifulsoup4
-whoosh
-jieba==0.40
-future
-html5lib
-```
-6. 安装依赖 `pip install -r requirements.txt`
-7. 建立索引 `python index.py`
-8. 运行app `python app.py`
+为知笔记离线搜索 Wiz.Search，是在 [restran/wiz-search](https://github.com/restran/wiz-search) 项目的基础上发展出来的。
+
+## 下载插件
+
+在 Release 页面选择对应平台的压缩包下载。
 
 ## 安装插件
-把Wiz.Search目录复制到 ~/.wiznote/plugins
 
-## 使用
-重启wiznoteplus, 就能在首页看到WizSearch了
+在 `~/.wiznote/plugins` 中创建 `Wiz.Search` 目录，将下载好的压缩包解压到该文件夹里。
+
+## 使用方法
+
+按照下面方法使用本插件：
+
+1. 重启 WizNotePlus, 就能在主界面工具栏看到 Wiz.Search 的图标。
+2. 点击图表右侧的下拉箭头，选择 “Build Index” ，等待全文搜索数据库的索引工作。
+3. 等索引完成后才能点击 Wiz.Search 的图标，开启离线搜索界面。
+4. 全文索引操作 “Build Index” 需要定期手动执行以将新笔记或新内容加入到索引中。
+5. 该插件在运行时会默认在 5000 端口启动一个服务以处理搜索请求，如果端口被占用可通过 Wiz.Search 下拉菜单中的 “Change Port” 更改。

@@ -27,8 +27,26 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     }
 
     // Get APIs
-    objApp = WizExplorerApp;
-    objDatabase = WizExplorerApp.Database;
+    const objApp = WizExplorerApp;
+    const objDatabase = WizExplorerApp.Database;
+    const objCommon = WizExplorerApp.CommonUI;
+    const objPlugin = channel.objects["JSPlugin"];
+    const objModule = channel.objects["JSPluginModule"];
+    const PluginPath = objPlugin.PluginPath
+    const DataPath = await objCommon.GetSpecialFolder("DataPath");
+    const USERID = await objDatabase.GetMeta("ACCOUNT", "USERID");
+
+    // TODO: 检查并启动 Server
+    // 绑定 RequestClose，以关闭服务器。
+    const userdatafolder = `${DataPath}/${USERID}/data`;
+    const indexfolder = `${userdatafolder}/search`;
+    let port = await objDatabase.GetMeta("WIZSEARCH", "PORT");
+    if (port == 0) port = '5000';
+    const params = [
+        "server", "--port", port,
+        "-O", `${indexfolder}`, '-W', `${userdatafolder}`];
+    const proc = await objCommon.RunProc(`${PluginPath}/dist/wizsearch/wizsearch`, params, false, true);
+    window.addEventListener("beforeunload", () => proc.kill());
 
     new Vue({
         el: '#app',
@@ -61,14 +79,14 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
             },
             loadPageList: function (pageNum = 1) {
                 var self = this;
+                self.hasSearch = false;
+                self.loading = true;
                 var postData = {
                     'keyword': this.keyword,
                     'page_num': pageNum
                 };
-                self.hasSearch = false;
-                self.loading = true;
                 // 这里加上随机数，避免缓存
-                axios.post('http://127.0.0.1:5000/api/search?_t=' + Math.random(), postData)
+                axios.post(`http://127.0.0.1:${port}/api/search?_t=` + Math.random(), postData)
                     .then(function (response) {
                         if (typeof response.data === 'string') {
                             try {
@@ -77,7 +95,7 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                                 console.log(e)
                             }
                         }
-    
+
                         self.tableData = response.data['data'];
                         self.total = response.data['total'];
                         self.hasSearch = true;
