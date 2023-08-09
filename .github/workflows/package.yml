@@ -47,7 +47,7 @@ jobs:
         pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
 
     - name: Compress plugin files to maintain file permissions
-      run:|
+      run: |
         zip -r Wiz.Search.zip \
           README.md \
           manifest.ini \
