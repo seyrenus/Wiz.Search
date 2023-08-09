@@ -70,7 +70,7 @@ jobs:
   release:
     needs: [build]
     runs-on: ubuntu-latest
-    #if: contains(github.ref, 'refs/tags/v')
+    if: contains(github.ref, 'refs/tags/v')
     steps:
 
     - name: Download pre-built packages
@@ -85,6 +85,5 @@ jobs:
         name: Wiz.Search v${{ github.ref_name }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: artifacts/Dev-Build-for-*/*
-        tag: v0.1.0
         draft: true
         prerelease: true
