@@ -70,13 +70,12 @@ jobs:
   release:
     needs: [build]
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'refs/tags/v')
+    #if: contains(github.ref, 'refs/tags/v')
     steps:
 
     - name: Download pre-built packages
       uses: actions/download-artifact@v3
       with:
-        name: Dev-Build-for-*
         path: artifacts
 
     - name: Create Release
@@ -85,6 +84,6 @@ jobs:
       with:
         name: Wiz.Search v${{ steps.release_notes.outputs.version }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: "artifacts/*"
+        artifacts: artifacts/Dev-Build-for-*/*
         draft: true
         prerelease: true
