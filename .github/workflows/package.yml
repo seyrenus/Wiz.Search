@@ -82,8 +82,9 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        name: Wiz.Search v${{ steps.release_notes.outputs.version }}
+        name: Wiz.Search v${{ github.ref_name }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: artifacts/Dev-Build-for-*/*
+        tag: v0.1.0
         draft: true
         prerelease: true
