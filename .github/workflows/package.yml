@@ -19,7 +19,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Create venv and install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       run: |
         python -m venv venv
         .\\venv\\Scripts\\activate
@@ -27,7 +27,7 @@ jobs:
         python -m pip install -r requirements.txt
 
     - name: Create venv and install dependencies (Linux/MacOS)
-      if: matrix.os != 'windows-latest'
+      if: ${{ !startsWith(matrix.os, 'windows') }}
       run: |
         python -m venv venv
         source venv/bin/activate
@@ -35,27 +35,30 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build with PyInstaller (Windows)
-      if: matrix.os == 'windows-latest'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       run: |
         .\\venv\\Scripts\\activate
         python -m PyInstaller --add-data 'venv\\Lib\\site-packages\\jieba;jieba' wizsearch.py
 
     - name: Build with PyInstaller (Linux/MacOS)
-      if: matrix.os != 'windows-latest'
+      if: ${{ !startsWith(matrix.os, 'windows') }}
       run: |
         source venv/bin/activate
         pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
 
-    - name: Compress plugin files to maintain file permissions
-      run: |
-        zip -r Wiz.Search.zip \
-          README.md \
-          manifest.ini \
-          index.html \
-          icon.svg \
-          buildindex.js \
-          changeport.js \
-          static/ \
+    - name: Compress plugin zipfile to maintain file permissions
+      uses: thedoctor0/zip-release@0.7.1
+      with:
+        type: zip
+        filename: Wiz.Search-${{ runner.os }}.zip
+        path: |
+          README.md
+          manifest.ini
+          index.html
+          icon.svg
+          buildindex.js
+          changeport.js
+          static/
           dist/
 
     - name: Upload artifact
@@ -69,11 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.ref, 'refs/tags/v')
     steps:
+
     - name: Download pre-built packages
       uses: actions/download-artifact@v3
       with:
         name: Dev-Build-for-*
         path: artifacts
+
     - name: Create Release
       id: create_release
       uses: ncipollo/release-action@v1
