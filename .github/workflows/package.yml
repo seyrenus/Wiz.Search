@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-2019, ubuntu-20.04, macos-11]
         python-version: [3.8]
 
     steps:
@@ -46,19 +46,23 @@ jobs:
         source venv/bin/activate
         pyinstaller --add-data 'venv/lib/python${{ matrix.python-version }}/site-packages/jieba:jieba' wizsearch.py
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: Wiz.Search-${{ runner.os }}
-        path: |
-          README.md
-          manifest.ini
-          index.html
-          icon.svg
-          buildindex.js
-          changeport.js
-          static/
+    - name: Compress plugin files to maintain file permissions
+      run:|
+        zip -r Wiz.Search.zip \
+          README.md \
+          manifest.ini \
+          index.html \
+          icon.svg \
+          buildindex.js \
+          changeport.js \
+          static/ \
           dist/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Dev-Build-for-${{ runner.os }}
+        path: Wiz.Search-${{ runner.os }}.zip
 
   release:
     needs: [build]
@@ -66,9 +70,9 @@ jobs:
     if: contains(github.ref, 'refs/tags/v')
     steps:
     - name: Download pre-built packages
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
-        name: Wiz.Search-*
+        name: Dev-Build-for-*
         path: artifacts
     - name: Create Release
       id: create_release
