@@ -82,7 +82,7 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        name: Wiz.Search v${{ github.ref_name }}
+        name: Wiz.Search ${{ github.ref_name }}
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: artifacts/Dev-Build-for-*/*
         draft: true
