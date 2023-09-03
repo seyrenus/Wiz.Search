@@ -36,8 +36,6 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
     const DataPath = await objCommon.GetSpecialFolder("DataPath");
     const USERID = await objDatabase.GetMeta("ACCOUNT", "USERID");
 
-    // TODO: 检查并启动 Server
-    // 绑定 RequestClose，以关闭服务器。
     const userdatafolder = `${DataPath}/${USERID}/data`;
     const indexfolder = `${userdatafolder}/search`;
     let port = await objDatabase.GetMeta("WIZSEARCH", "PORT");

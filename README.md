@@ -49,4 +49,7 @@
 
     ```shell
     python -m PyInstaller --add-data 'venv/lib/python3.7/site-packages/jieba:jieba' wizsearch.py
+
+    # Windows:
+    # python -m PyInstaller --add-data 'venv\\Lib\\site-packages\\jieba;jieba' wizsearch.py
     ```
