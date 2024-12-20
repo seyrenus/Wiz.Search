@@ -328,3 +328,13 @@ a.wiz-link:hover {
     text-decoration-line: underline;
     color: #999;
 }
+
+.label-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+  .label-wrapper label {
+    margin-bottom: 5px;
+    color: #606266;
+    font-size: 14px;
+  }

@@ -28,8 +28,24 @@ def test_page():
 def page_search():
     wiz_index = app.wiz_index
     keyword = request.json.get('keyword')
+    search_in = request.json.get('search_in')
     page_num = request.json.get('page_num', 1)
-    total, results = wiz_index.search(keyword, page_num)
+    folder_path = request.json.get('folder_path')
+    start_date = request.json.get('start_date')
+    end_date = request.json.get('end_date')
+    modify_start_date = request.json.get('modify_start_date')
+    modify_end_date = request.json.get('modify_end_date')
+    
+    total, results = wiz_index.search(
+        keyword=keyword,
+        page_num=page_num,
+        search_in=search_in,
+        folder_path=folder_path,
+        start_date=start_date,
+        end_date=end_date,
+        modify_start_date=modify_start_date,
+        modify_end_date=modify_end_date
+    )
     return jsonify({'code': 200, 'data': results, 'total': total, 'msg': 'ok'})
 
 def run_server(args):
@@ -70,6 +86,20 @@ def main():
     else:
         parser.print_help()
 
+@app.route('/api/folders', methods=['GET'])
+def get_folders():
+    try:
+        wiz_index = app.wiz_index
+        folders = wiz_index.get_folders()
+        return jsonify({
+            "success": True,
+            "data": folders
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        })
 
 if __name__ == '__main__':
     main()
