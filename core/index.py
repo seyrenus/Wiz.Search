@@ -182,7 +182,7 @@ class WizIndex(object):
         writer.commit()
 
     def search(self, keyword, page_num=1, search_in=None, folder_path=None,
-                start_date=None, end_date=None, 
+                create_start_date=None, create_end_date=None, 
                 modify_start_date=None, modify_end_date=None):
         """
         搜索笔记
@@ -190,8 +190,8 @@ class WizIndex(object):
         :param page_num: 页码
         :param search_in: 搜索范围（title 或 content）
         :param folder_path: 文件夹路径
-        :param start_date: 创建开始日期
-        :param end_date: 创建结束日期
+        :param create_start_date: 创建开始日期
+        :param create_end_date: 创建结束日期
         :param modify_start_date: 修改开始日期
         :param modify_end_date: 修改结束日期
         """
@@ -219,10 +219,10 @@ class WizIndex(object):
             # 添加其他过滤条件
             if folder_path:
                 conditions.append(f"DOCUMENT_LOCATION LIKE '{folder_path}%'")
-            if start_date:
-                conditions.append(f"DT_CREATED >= '{start_date} 00:00:00'")
-            if end_date:
-                conditions.append(f"DT_CREATED <= '{end_date} 23:59:59'")
+            if create_start_date:
+                conditions.append(f"DT_CREATED >= '{create_start_date} 00:00:00'")
+            if create_end_date:
+                conditions.append(f"DT_CREATED <= '{create_end_date} 23:59:59'")
             if modify_start_date:
                 conditions.append(f"DT_MODIFIED >= '{modify_start_date} 00:00:00'")
             if modify_end_date:

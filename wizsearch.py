@@ -31,8 +31,8 @@ def page_search():
     search_in = request.json.get('search_in')
     page_num = request.json.get('page_num', 1)
     folder_path = request.json.get('folder_path')
-    start_date = request.json.get('start_date')
-    end_date = request.json.get('end_date')
+    create_start_date = request.json.get('create_start_date')
+    create_end_date = request.json.get('create_end_date')
     modify_start_date = request.json.get('modify_start_date')
     modify_end_date = request.json.get('modify_end_date')
     
@@ -41,8 +41,8 @@ def page_search():
         page_num=page_num,
         search_in=search_in,
         folder_path=folder_path,
-        start_date=start_date,
-        end_date=end_date,
+        create_start_date=create_start_date,
+        create_end_date=create_end_date,
         modify_start_date=modify_start_date,
         modify_end_date=modify_end_date
     )
