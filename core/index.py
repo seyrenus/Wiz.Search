@@ -16,7 +16,7 @@ from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import create_in
 from whoosh.qparser import QueryParser
-from whoosh.query import And, Term, TermRange
+from whoosh.query import And, Prefix, TermRange
 
 jieba.setLogLevel(jieba.logging.ERROR)
 
@@ -88,7 +88,7 @@ class WizIndex(object):
             title=TEXT(stored=True, analyzer=analyzer),
             path=ID(stored=True),
             content=TEXT(stored=True, analyzer=analyzer),
-            location=TEXT(stored=True),
+            location=ID(stored=True),
             create_time=DATETIME(stored=True),
             modify_time=DATETIME(stored=True)
         )
@@ -245,20 +245,20 @@ class WizIndex(object):
             if modify_end_date and isinstance(modify_end_date, str):
                 modify_end_date = datetime.strptime(modify_end_date + " 23:59:59", self.DATE_FORMAT)
 
+            # 如果 folder_path 不以 '/' 结尾，则添加一个 '/'
+            if folder_path and not folder_path.endswith('/'):
+                folder_path += '/'
+
             # 构建查询条件
             query_conditions = []
             if keyword:
                 query_conditions.append(parser.parse(keyword))
             if folder_path:
-                query_conditions.append(Term("location", folder_path))
-            if create_start_date:
-                query_conditions.append(TermRange("create_time", create_start_date, None))
-            if create_end_date:
-                query_conditions.append(TermRange("create_time", None, create_end_date))
-            if modify_start_date:
-                query_conditions.append(TermRange("modify_time", modify_start_date, None))
-            if modify_end_date:
-                query_conditions.append(TermRange("modify_time", None, modify_end_date))
+                query_conditions.append(Prefix("location", folder_path))
+            if create_start_date or create_end_date:
+                query_conditions.append(TermRange("create_time", create_start_date, create_end_date))
+            if modify_start_date or modify_end_date:
+                query_conditions.append(TermRange("modify_time", modify_start_date, modify_end_date))
 
             # 合并所有查询条件
             final_query = And(query_conditions)
