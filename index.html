@@ -101,8 +101,9 @@
                                     <el-link type="primary" @click.prevent="viewDocument(item['document_guid'])"
                                              style="font-size: 16px" v-text="item['title']"></el-link>
                                 </div>
-                                <div style="font-size: 14px; color: #666;margin-bottom: 5px">
-                                    <span v-text="item['dt_created'] > item['dt_modified'] ? item['dt_created']: item['dt_modified']"></span>
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px">
+                                    <span>创建时间: <span v-text="item['dt_created']"></span></span>
+                                    <span style="margin-left: 10px">更新时间: <span v-text="item['dt_modified']"></span></span>
                                     <span v-text="item['document_location']" style="margin-left: 5px"></span>
                                 </div>
                                 <div v-html="item['highlights']"
