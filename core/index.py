@@ -12,14 +12,16 @@ import jieba
 from bs4 import BeautifulSoup
 from jieba.analyse import ChineseAnalyzer
 from whoosh import scoring
-from whoosh.fields import Schema, TEXT, ID
+from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import create_in
 from whoosh.qparser import QueryParser
 
 jieba.setLogLevel(jieba.logging.ERROR)
 
-CREATE_TABLE_SQL = """
+CURRENT_INDEX_VERSION = 2
+
+CREATE_WIZ_INDEX_TABLE_SQL = """
 create table WIZ_INDEX
 (
   DOCUMENT_GUID     char(36)     not null primary key,
@@ -27,8 +29,18 @@ create table WIZ_INDEX
   DOCUMENT_LOCATION varchar(768),
   DT_CREATED        char(19),
   DT_MODIFIED       char(19),
+  DT_DATA_MODIFIED  char(19), -- 笔记数据修改时间
   WIZ_VERSION       int64,
   DT_INDEXED        integer(4)
+);
+"""
+
+# 版本表
+CREATE_WIZ_INDEX_VERSION_TABLE_SQL = """
+create table WIZ_INDEX_VERSION
+(
+  name      char(10)     not null primary key,
+  version  int64
 );
 """
 
@@ -46,13 +58,16 @@ class WizIndex(object):
 
         try:
             with self.index_db.get_connection() as conn:
-                conn.query('select * from WIZ_INDEX')
+                # 检查 WIZ_INDEX_VERSION 表是否存在并获取版本号
+                result = conn.query('SELECT version FROM WIZ_INDEX_VERSION WHERE name = "version"').first()
+                if not result or result['version'] < 2:
+                    raise Exception("Version is outdated or table does not exist")
         except:
-            # FIXME: create table using another way
-            if self.verbose:
-                print('create table WIZ_INDEX', file=sys.stderr)
+            # 如果 WIZ_INDEX_VERSION 表不存在或版本号小于 2，则创建表并插入初始数据
             with self.index_db.get_connection() as conn:
-                conn.query(CREATE_TABLE_SQL)
+                conn.query(CREATE_WIZ_INDEX_VERSION_TABLE_SQL)
+                conn.query("INSERT INTO WIZ_INDEX_VERSION (name, version) VALUES ('version', 2)")
+                conn.query(CREATE_WIZ_INDEX_TABLE_SQL)
                 conn.query('PRAGMA auto_vacuum = FULL;')
 
             if os.path.exists(self.index_path):
@@ -64,7 +79,11 @@ class WizIndex(object):
         analyzer = ChineseAnalyzer()
         self.schema = Schema(title=TEXT(stored=True, analyzer=analyzer),
                              path=ID(stored=True),
-                             content=TEXT(stored=True, analyzer=analyzer))
+                             content=TEXT(stored=True, analyzer=analyzer),
+                             location=TEXT(sorted=True),
+                             create_time=DATETIME(stored=True),
+                             modify_time=DATETIME(stored=True)
+                             )
 
     def get_idx(self):
         try:
@@ -141,21 +160,27 @@ class WizIndex(object):
                             writer.add_document(
                                 path=r['DOCUMENT_GUID'],
                                 title=r['DOCUMENT_TITLE'],
-                                content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text
+                                content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text,
+                                location=r['DOCUMENT_LOCATION'],
+                                create_time=r['DT_CREATED'],
+                                modify_time=r['DT_DATA_MODIFIED']
                             )
-                            sql = """insert into WIZ_INDEX (DOCUMENT_GUID, DOCUMENT_TITLE, DOCUMENT_LOCATION, DT_CREATED, DT_MODIFIED, WIZ_VERSION) 
-                            values (:DOCUMENT_GUID, :DOCUMENT_TITLE, :DOCUMENT_LOCATION, :DT_CREATED, :DT_MODIFIED, :WIZ_VERSION)"""
+                            sql = """insert into WIZ_INDEX (DOCUMENT_GUID, DOCUMENT_TITLE, DOCUMENT_LOCATION, DT_CREATED, DT_MODIFIED,DT_DATA_MODIFIED, WIZ_VERSION) 
+                            values (:DOCUMENT_GUID, :DOCUMENT_TITLE, :DOCUMENT_LOCATION, :DT_CREATED, :DT_MODIFIED, :DT_DATA_MODIFIED, :WIZ_VERSION)"""
                         elif action == 'update':
                             writer.delete_by_term('path', r['DOCUMENT_GUID'])
                             writer.update_document(
                                 path=r['DOCUMENT_GUID'],
                                 title=r['DOCUMENT_TITLE'],
-                                content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text
+                                content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text,
+                                location=r['DOCUMENT_LOCATION'],
+                                create_time=r['DT_CREATED'],
+                                modify_time=r['DT_DATA_MODIFIED']
                             )
 
                             sql = """update WIZ_INDEX set DOCUMENT_TITLE=:DOCUMENT_TITLE, 
                             DOCUMENT_LOCATION=:DOCUMENT_LOCATION, DT_CREATED=:DT_CREATED, 
-                            DT_MODIFIED=:DT_MODIFIED, WIZ_VERSION=:WIZ_VERSION where DOCUMENT_GUID=:DOCUMENT_GUID"""
+                            DT_MODIFIED=:DT_MODIFIED, DT_DATA_MODIFIED=:DT_DATA_MODIFIED, WIZ_VERSION=:WIZ_VERSION where DOCUMENT_GUID=:DOCUMENT_GUID"""
 
                         elif action == 'delete':
                             writer.delete_by_term('path', r['DOCUMENT_GUID'])
@@ -169,6 +194,7 @@ class WizIndex(object):
                             'DOCUMENT_LOCATION': r['DOCUMENT_LOCATION'],
                             'DT_CREATED': r['DT_CREATED'],
                             'DT_MODIFIED': r['DT_MODIFIED'],
+                            'DT_DATA_MODIFIED': r['DT_DATA_MODIFIED'],
                             'WIZ_VERSION': r['WIZ_VERSION']
                         }
                         with self.index_db.get_connection() as conn:
@@ -228,7 +254,7 @@ class WizIndex(object):
             if modify_end_date:
                 conditions.append(f"DT_MODIFIED <= '{modify_end_date} 23:59:59'")
 
-            # 构建完整的 SQL 查询，包含分页
+            # 建完整的 SQL 查询，包含分页
             offset = (page_num - 1) * page_size
             sql = f"""
                 SELECT * FROM WIZ_INDEX 
