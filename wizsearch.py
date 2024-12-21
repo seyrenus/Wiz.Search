@@ -15,7 +15,22 @@ def run_search(args):
     wiz_index = WizIndex(base_path=args.folder, wiz_path=args.wiznote_data_path)
     keyword = ' '.join(args.keywords)
     page_num = args.page_number
-    total, results = wiz_index.search(keyword, page_num)
+    search_in = args.search_in
+    folder_path = args.folder_path
+    create_start_date = args.create_start_date
+    create_end_date = args.create_end_date
+    modify_start_date = args.modify_start_date
+    modify_end_date = args.modify_end_date
+    total, results =  wiz_index.search(
+        keyword=keyword,
+        page_num=page_num,
+        search_in=search_in,
+        folder_path=folder_path,
+        create_start_date=create_start_date,
+        create_end_date=create_end_date,
+        modify_start_date=modify_start_date,
+        modify_end_date=modify_end_date
+    )
     print(json.dumps({'total': total, 'data': results}))
 
 app = Flask("WizSearch")
@@ -71,6 +86,12 @@ def main():
     search_cmd = subparsers.add_parser("search", help="Search the database with given keywords.",
                                        parents=[shared_parser])
     search_cmd.add_argument("-p", "--page-number", type=int, default=1, help="Page number.")
+    search_cmd.add_argument("-s", "--search-in", type=str, default="content", help="Search in title or content.")
+    search_cmd.add_argument("-f", "--folder-path", type=str, default=None, help="Folder path.")
+    search_cmd.add_argument("-c", "--create-start-date", type=str, default=None, help="Create start date.")
+    search_cmd.add_argument("-e", "--create-end-date", type=str, default=None, help="Create end date.")
+    search_cmd.add_argument("-m", "--modify-start-date", type=str, default=None, help="Modify start date.")
+    search_cmd.add_argument("-n", "--modify-end-date", type=str, default=None, help="Modify end date.")
     search_cmd.add_argument("keywords", nargs='*', help="Keywords to search.")
     search_cmd.set_defaults(func=run_search)
 

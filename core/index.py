@@ -6,7 +6,7 @@ import os.path
 import shutil
 import zipfile
 import sys
-
+from datetime import datetime
 import records
 import jieba
 from bs4 import BeautifulSoup
@@ -16,6 +16,7 @@ from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import create_in
 from whoosh.qparser import QueryParser
+from whoosh.query import And, Term, TermRange
 
 jieba.setLogLevel(jieba.logging.ERROR)
 
@@ -46,6 +47,8 @@ create table WIZ_INDEX_VERSION
 
 
 class WizIndex(object):
+    DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # 时间格式
+
     def __init__(self, base_path, wiz_path, verbose=False):
         if not os.path.exists(base_path):
             os.mkdir(base_path)
@@ -58,32 +61,37 @@ class WizIndex(object):
 
         try:
             with self.index_db.get_connection() as conn:
-                # 检查 WIZ_INDEX_VERSION 表是否存在并获取版本号
-                result = conn.query('SELECT version FROM WIZ_INDEX_VERSION WHERE name = "version"').first()
+                # 检查 WIZ_INDEX_VERSION 表是否存在
+                result = conn.query("SELECT name FROM sqlite_master WHERE type='table' AND name='WIZ_INDEX_VERSION'").first()
+                if not result:
+                    # 如果表不存在，则创建表
+                    conn.query(CREATE_WIZ_INDEX_TABLE_SQL)
+                    conn.query("INSERT INTO WIZ_INDEX_VERSION (name, version) VALUES ('version', 0)")
+                # 查询版本号，如果版本号小于2，需要重建索引
+                result = conn.query("SELECT version FROM WIZ_INDEX_VERSION WHERE name = 'version'").first()
                 if not result or result['version'] < 2:
-                    raise Exception("Version is outdated or table does not exist")
+                    conn.query('DROP TABLE IF EXISTS WIZ_INDEX')
+                    conn.query(CREATE_WIZ_INDEX_TABLE_SQL)
+                    conn.query('PRAGMA auto_vacuum = FULL;')
+                    conn.query("UPDATE WIZ_INDEX_VERSION SET version=2 where name = 'version'")
+
+                    if os.path.exists(self.index_path):
+                        shutil.rmtree(self.index_path)
+
+                    if not os.path.exists(self.index_path):
+                        os.mkdir(self.index_path)
         except:
-            # 如果 WIZ_INDEX_VERSION 表不存在或版本号小于 2，则创建表并插入初始数据
-            with self.index_db.get_connection() as conn:
-                conn.query(CREATE_WIZ_INDEX_VERSION_TABLE_SQL)
-                conn.query("INSERT INTO WIZ_INDEX_VERSION (name, version) VALUES ('version', 2)")
-                conn.query(CREATE_WIZ_INDEX_TABLE_SQL)
-                conn.query('PRAGMA auto_vacuum = FULL;')
-
-            if os.path.exists(self.index_path):
-                shutil.rmtree(self.index_path)
-
-            if not os.path.exists(self.index_path):
-                os.mkdir(self.index_path)
+            pass
 
         analyzer = ChineseAnalyzer()
-        self.schema = Schema(title=TEXT(stored=True, analyzer=analyzer),
-                             path=ID(stored=True),
-                             content=TEXT(stored=True, analyzer=analyzer),
-                             location=TEXT(sorted=True),
-                             create_time=DATETIME(stored=True),
-                             modify_time=DATETIME(stored=True)
-                             )
+        self.schema = Schema(
+            title=TEXT(stored=True, analyzer=analyzer),
+            path=ID(stored=True),
+            content=TEXT(stored=True, analyzer=analyzer),
+            location=TEXT(stored=True),
+            create_time=DATETIME(stored=True),
+            modify_time=DATETIME(stored=True)
+        )
 
     def get_idx(self):
         try:
@@ -162,8 +170,8 @@ class WizIndex(object):
                                 title=r['DOCUMENT_TITLE'],
                                 content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text,
                                 location=r['DOCUMENT_LOCATION'],
-                                create_time=r['DT_CREATED'],
-                                modify_time=r['DT_DATA_MODIFIED']
+                                create_time=datetime.strptime(r['DT_CREATED'], self.DATE_FORMAT),
+                                modify_time=datetime.strptime(r['DT_DATA_MODIFIED'], self.DATE_FORMAT)
                             )
                             sql = """insert into WIZ_INDEX (DOCUMENT_GUID, DOCUMENT_TITLE, DOCUMENT_LOCATION, DT_CREATED, DT_MODIFIED,DT_DATA_MODIFIED, WIZ_VERSION) 
                             values (:DOCUMENT_GUID, :DOCUMENT_TITLE, :DOCUMENT_LOCATION, :DT_CREATED, :DT_MODIFIED, :DT_DATA_MODIFIED, :WIZ_VERSION)"""
@@ -174,8 +182,8 @@ class WizIndex(object):
                                 title=r['DOCUMENT_TITLE'],
                                 content=r['DOCUMENT_TITLE'] + '\n' + html_content.body.text,
                                 location=r['DOCUMENT_LOCATION'],
-                                create_time=r['DT_CREATED'],
-                                modify_time=r['DT_DATA_MODIFIED']
+                                create_time=datetime.strptime(r['DT_CREATED'], self.DATE_FORMAT),
+                                modify_time=datetime.strptime(r['DT_DATA_MODIFIED'], self.DATE_FORMAT)
                             )
 
                             sql = """update WIZ_INDEX set DOCUMENT_TITLE=:DOCUMENT_TITLE, 
@@ -226,76 +234,59 @@ class WizIndex(object):
             searcher = idx.searcher(weighting=scoring.TF_IDF())
             parser = QueryParser(search_in if search_in else 'content', schema=idx.schema)
             page_size = 20
-            q = parser.parse(keyword)
-            
-            # 先获取所有匹配的结果
-            results = searcher.search(q, limit=None)  # 不限制结果数量
-            total = len(results)
-            
-            # 收集所有匹配文档的 GUID
-            all_guids = [hit.get('path') for hit in results]
-            if not all_guids:
-                return 0, []
 
-            # 构建基础查询条件
-            conditions = []
-            guid_list = "','".join(all_guids)
-            conditions.append(f"DOCUMENT_GUID in ('{guid_list}')")
-            
-            # 添加其他过滤条件
+            # 将字符串日期转换为 datetime 对象
+            if create_start_date and isinstance(create_start_date, str):
+                create_start_date = datetime.strptime(create_start_date + " 00:00:00", self.DATE_FORMAT)
+            if create_end_date and isinstance(create_end_date, str):
+                create_end_date = datetime.strptime(create_end_date + " 23:59:59", self.DATE_FORMAT)
+            if modify_start_date and isinstance(modify_start_date, str):
+                modify_start_date = datetime.strptime(modify_start_date + " 00:00:00", self.DATE_FORMAT)
+            if modify_end_date and isinstance(modify_end_date, str):
+                modify_end_date = datetime.strptime(modify_end_date + " 23:59:59", self.DATE_FORMAT)
+
+            # 构建查询条件
+            query_conditions = []
+            if keyword:
+                query_conditions.append(parser.parse(keyword))
             if folder_path:
-                conditions.append(f"DOCUMENT_LOCATION LIKE '{folder_path}%'")
+                query_conditions.append(Term("location", folder_path))
             if create_start_date:
-                conditions.append(f"DT_CREATED >= '{create_start_date} 00:00:00'")
+                query_conditions.append(TermRange("create_time", create_start_date, None))
             if create_end_date:
-                conditions.append(f"DT_CREATED <= '{create_end_date} 23:59:59'")
+                query_conditions.append(TermRange("create_time", None, create_end_date))
             if modify_start_date:
-                conditions.append(f"DT_MODIFIED >= '{modify_start_date} 00:00:00'")
+                query_conditions.append(TermRange("modify_time", modify_start_date, None))
             if modify_end_date:
-                conditions.append(f"DT_MODIFIED <= '{modify_end_date} 23:59:59'")
+                query_conditions.append(TermRange("modify_time", None, modify_end_date))
 
-            # 建完整的 SQL 查询，包含分页
-            offset = (page_num - 1) * page_size
-            sql = f"""
-                SELECT * FROM WIZ_INDEX 
-                WHERE {' AND '.join(conditions)}
-                ORDER BY DT_MODIFIED DESC
-                LIMIT {page_size} OFFSET {offset}
-            """
-            
-            # 获取总数的查询
-            count_sql = f"""
-                SELECT COUNT(*) as total FROM WIZ_INDEX 
-                WHERE {' AND '.join(conditions)}
-            """
+            # 合并所有查询条件
+            final_query = And(query_conditions)
 
-            with self.index_db.get_connection() as conn:
-                # 获取分页数据
-                rows = conn.query(sql).as_dict()
-                # 获取总数
-                total_count = conn.query(count_sql).first()['total']
+            # 执行查询并分页
+            results = searcher.search_page(final_query, page_num, pagelen=page_size)
+            total = len(results)
 
             # 构建返回数据
             data = []
-            guid_dict = {t['DOCUMENT_GUID']: t for t in rows}
-            
-            # 获取当前页的搜索结果
-            current_page_results = searcher.search(q, limit=None)
-            for hit in current_page_results:
-                guid = hit.get('path')
-                if guid in guid_dict:
-                    item = {
-                        'highlights': hit.highlights("content"),
-                        'document_guid': guid,
-                        'title': hit.get('title'),
-                        'document_location': guid_dict[guid]['DOCUMENT_LOCATION'],
-                        'dt_created': guid_dict[guid]['DT_CREATED'],
-                        'dt_modified': guid_dict[guid]['DT_MODIFIED'],
-                        'wiz_version': guid_dict[guid]['WIZ_VERSION']
-                    }
-                    data.append(item)
+            for hit in results:
+                dt_created = hit.get('create_time')
+                dt_modified = hit.get('modify_time')
 
-            return total_count, data
+                # 格式化为字符串
+                dt_created_str = dt_created.strftime(self.DATE_FORMAT) if dt_created else None
+                dt_modified_str = dt_modified.strftime(self.DATE_FORMAT) if dt_modified else None
+
+                data.append({
+                    'highlights': hit.highlights("content"),
+                    'document_guid': hit.get('path'),
+                    'title': hit.get('title'),
+                    'document_location': hit.get('location'),
+                    'dt_created': dt_created_str,
+                    'dt_modified': dt_modified_str,
+                })
+
+            return total, data
 
         except Exception as e:
             print(f"Search error: {str(e)}")
@@ -353,6 +344,5 @@ class WizIndex(object):
         except Exception as e:
             print(f"Error getting folders: {str(e)}")
             return []
-
 
         return total, data
