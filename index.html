@@ -34,7 +34,7 @@
                                     </div>
                                 </el-col>
                                 <el-col :span="16">
-                                    <div class="label-wrapper">
+                                    <div class="label-wrapper"  @click="updateFolders">
                                         <label>搜索目录</label>
                                         <el-cascader
                                             v-model="selectedFolder"

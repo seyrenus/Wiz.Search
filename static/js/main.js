@@ -69,23 +69,9 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
         },
         mounted: function () {
             this.hasInit = true
-            this.loadFolders();
+            //this.loadFolders();  // 修改为点击时加载
         },
         methods: {
-            loadFolders() {
-                this.folderOptions = [
-                    {
-                        value: 'folder1',
-                        label: '目录1',
-                        children: [
-                            {
-                                value: 'folder1-1',
-                                label: '子目录1-1'
-                            }
-                        ]
-                    }
-                ];
-            },
             search: function () {
                 this.loadPageList(1);
             },
@@ -146,6 +132,11 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                     showClose: true
                 });
             },
+            updateFolders: function () {
+                if (!this.folderOptions || this.folderOptions.length === 0) {
+                    this.loadFolders();
+                }
+            },
             async loadFolders() {
                 try {
                     const response = await axios.get(`http://127.0.0.1:${port}/api/folders`);
@@ -154,7 +145,7 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                         console.log('Folder options:', this.folderOptions);
                     }
                 } catch (error) {
-                    this.showErrorMsg('获取目录结构失败');
+                    this.showErrorMsg('获取目录结构失败, 请检查wizsearch是否正常启动');
                     console.error(error);
                 }
             },
@@ -213,8 +204,6 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                 this.currentPath = expandedNodes;
             },
             findNodeByName(options, name) {
-				console.log('options ', options);
-				console.log('name2 ', name);
                 for (const option of options) {
                     if (option.name === name) {
                         return option;
