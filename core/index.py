@@ -238,6 +238,17 @@ class WizIndex(object):
             parser = QueryParser(search_in if search_in else 'content', schema=idx.schema)
             page_size = 20
 
+            # whoosh: DATETIME fields do not currently support open-ended ranges.
+            # You can simulate an open ended range by using an endpoint far in the past or future.
+            if create_start_date and not create_end_date:
+                create_end_date = '2099-12-31'
+            if create_end_date and not create_start_date:
+                create_start_date = '1970-01-01'
+            if modify_start_date and not modify_end_date:
+                modify_end_date = '2099-12-31'
+            if modify_end_date and not modify_start_date:
+                modify_start_date = '1970-01-01'
+
             # 将字符串日期转换为 datetime 对象
             if create_start_date and isinstance(create_start_date, str):
                 create_start_date = datetime.strptime(create_start_date + " 00:00:00", self.DATE_FORMAT)
