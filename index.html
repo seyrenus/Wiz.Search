@@ -22,6 +22,74 @@
             <div class="main-content">
                 <div v-loading="loading">
                     <div style="margin: 15px auto; max-width: 800px;">
+                        <div class="search-conditions" style="margin-bottom: 15px">
+                            <el-row :gutter="20">
+                                <el-col :span="8">
+                                    <div class="label-wrapper">
+                                        <label>搜索范围</label>
+                                        <el-select v-model="search_in" placeholder="查询范围" style="width: 100%">
+                                            <el-option label="标题+内容" value="content"></el-option>
+                                            <el-option label="仅标题" value="title"></el-option>
+                                        </el-select>
+                                    </div>
+                                </el-col>
+                                <el-col :span="16">
+                                    <div class="label-wrapper"  @click="updateFolders">
+                                        <label>搜索目录</label>
+                                        <el-cascader
+                                            v-model="selectedFolder"
+                                            :options="folderOptions"
+                                            :props="{
+                                                expandTrigger: 'click',
+                                                checkStrictly: true,
+                                                value: 'name',
+                                                label: 'name',
+                                                multiple: false,
+                                                emitPath: false,
+                                                separator: '/'
+                                            }"
+                                            @change="handleFolderChange"
+                                            @expand-change="handleExpandChange"
+                                            placeholder="选择搜索目录"
+                                            clearable
+                                            style="width: 100%">
+                                        </el-cascader>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                            
+                            <el-row :gutter="20" style="margin-top: 15px">
+                                <el-col :span="12">
+                                    <div class="label-wrapper">
+                                        <label>创建时间</label>
+                                        <el-date-picker
+                                            v-model="createDateRange"
+                                            type="daterange"
+                                            range-separator="至"
+                                            start-placeholder="开始日期"
+                                            end-placeholder="结束日期"
+                                            value-format="yyyy-MM-dd"
+                                            style="width: 100%">
+                                        </el-date-picker>
+                                    </div>
+                                </el-col>
+                                <el-col :span="12">
+                                    <div class="label-wrapper">
+                                        <label>更新时间</label>
+                                        <el-date-picker
+                                            v-model="modifyDateRange"
+                                            type="daterange"
+                                            range-separator="至"
+                                            start-placeholder="开始日期"
+                                            end-placeholder="结束日期"
+                                            value-format="yyyy-MM-dd"
+                                            style="width: 100%">
+                                        </el-date-picker>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </div>
+
                         <el-input placeholder="请输入关键字" v-model="keyword" @keyup.enter.native="search()"
                                   class="input-with-select">
                             <el-button slot="append" icon="el-icon-search" @click="search()"></el-button>
@@ -33,8 +101,9 @@
                                     <el-link type="primary" @click.prevent="viewDocument(item['document_guid'])"
                                              style="font-size: 16px" v-text="item['title']"></el-link>
                                 </div>
-                                <div style="font-size: 14px; color: #666;margin-bottom: 5px">
-                                    <span v-text="item['dt_created'] > item['dt_modified'] ? item['dt_created']: item['dt_modified']"></span>
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px">
+                                    <span>创建时间: <span v-text="item['dt_created']"></span></span>
+                                    <span style="margin-left: 10px">更新时间: <span v-text="item['dt_modified']"></span></span>
                                     <span v-text="item['document_location']" style="margin-left: 5px"></span>
                                 </div>
                                 <div v-html="item['highlights']"

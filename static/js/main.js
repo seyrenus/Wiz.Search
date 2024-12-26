@@ -58,11 +58,18 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                 pageSize: 20,
                 currentPage: 1,
                 loading: false,
-                tableData: []
+                tableData: [],
+                search_in: 'content',
+                createDateRange: [],
+                selectedFolder: [],
+                currentPath: [],
+                modifyDateRange: [],
+                folderOptions: []
             }
         },
         mounted: function () {
             this.hasInit = true
+            //this.loadFolders();  // 修改为点击时加载
         },
         methods: {
             search: function () {
@@ -81,8 +88,15 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                 self.loading = true;
                 var postData = {
                     'keyword': this.keyword,
-                    'page_num': pageNum
+                    'page_num': pageNum,
+                    'search_in': this.search_in,
+                    'create_start_date': this.createDateRange ? this.createDateRange[0] : null,
+                    'create_end_date': this.createDateRange ? this.createDateRange[1] : null,
+                    'modify_start_date': this.modifyDateRange ? this.modifyDateRange[0] : null,
+                    'modify_end_date': this.modifyDateRange ? this.modifyDateRange[1] : null,
+                    'folder_path': this.actualFolderPath
                 };
+                
                 // 这里加上随机数，避免缓存
                 axios.post(`http://127.0.0.1:${port}/api/search?_t=` + Math.random(), postData)
                     .then(function (response) {
@@ -117,6 +131,103 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                     duration: 3000,
                     showClose: true
                 });
+            },
+            updateFolders: function () {
+                if (!this.folderOptions || this.folderOptions.length === 0) {
+                    this.loadFolders();
+                }
+            },
+            async loadFolders() {
+                try {
+                    const response = await axios.get(`http://127.0.0.1:${port}/api/folders`);
+                    if (response.data && response.data.success) {
+                        this.folderOptions = this.transformFolderData(response.data.data);
+                        console.log('Folder options:', this.folderOptions);
+                    }
+                } catch (error) {
+                    this.showErrorMsg('获取目录结构失败, 请检查wizsearch是否正常启动');
+                    console.error(error);
+                }
+            },
+            transformFolderData(folders) {
+                return folders.map(folder => {
+                    const item = {
+                        name: folder.name,
+                        label: folder.name,
+                        path: folder.path
+                    };
+                    
+                    // 只有当有子节点时才添加"全部"选项
+                    if (folder.children && folder.children.length > 0) {
+                        // 创建子节点数组
+                        let children = [];
+                        
+                        // 添加"全部"子节点
+                        children.push({
+                            name: `${folder.name}(全部)`,
+                            label: '全部',
+                            path: folder.path  // 使用父节点的路径
+                        });
+                        
+                        // 添加原有的子节点
+                        children = children.concat(this.transformFolderData(folder.children));
+                        
+                        item.children = children;
+                    }
+                    
+                    return item;
+                });
+            },
+            handleNodeClick(node) {
+                console.log('handleNodeClick', node);
+                this.selectedFolder = node.name;
+                this.actualFolderPath = node.path;
+            },
+            handleFolderChange(value) {
+                console.log('handleFolderChange', value);
+                if (!value) {
+                    this.selectedFolder = null;
+                    this.actualFolderPath = null;
+                    return;
+                }
+
+                // 找到选中节点的信息
+                const found = this.findNodeByName(this.folderOptions, value[value.length - 1]);
+				console.log('handleFolderChange found', found);
+                if (found) {
+                    this.selectedFolder = value;
+                    // 如果选中的是"全部"节点，使用其父节点的路径
+                    this.actualFolderPath = found.path;
+                }
+            },
+            handleExpandChange(expandedNodes, node) {
+                this.currentPath = expandedNodes;
+            },
+            findNodeByName(options, name) {
+                for (const option of options) {
+                    if (option.name === name) {
+                        return option;
+                    }
+                    if (option.children && option.children.length > 0) {
+                        const found = this.findNodeByName(option.children, name);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            },
+            getParentsByPath(list, targetPath) {
+                for (let i in list) {
+                    if (list[i].path === targetPath) {
+                        return [list[i].name];
+                    }
+                    if (list[i].children) {
+                        let node = this.getParentsByPath(list[i].children, targetPath);
+                        if (node !== undefined) {
+                            node.unshift(list[i].name);
+                            return node;
+                        }
+                    }
+                }
             }
         },
         watch: {}
