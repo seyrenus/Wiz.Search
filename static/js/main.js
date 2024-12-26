@@ -184,7 +184,6 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
                 this.actualFolderPath = node.path;
             },
             handleFolderChange(value) {
-                console.log('handleFolderChange', value);
                 if (!value) {
                     this.selectedFolder = null;
                     this.actualFolderPath = null;
@@ -193,7 +192,6 @@ new QWebChannel(qt.webChannelTransport, async function(channel) {
 
                 // 找到选中节点的信息
                 const found = this.findNodeByName(this.folderOptions, value[value.length - 1]);
-				console.log('handleFolderChange found', found);
                 if (found) {
                     this.selectedFolder = value;
                     // 如果选中的是"全部"节点，使用其父节点的路径

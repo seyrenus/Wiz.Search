@@ -20,6 +20,7 @@ from whoosh.query import And, Prefix, TermRange
 
 jieba.setLogLevel(jieba.logging.ERROR)
 
+
 CURRENT_INDEX_VERSION = 2
 
 CREATE_WIZ_INDEX_TABLE_SQL = """
@@ -73,15 +74,17 @@ class WizIndex(object):
                     conn.query('DROP TABLE IF EXISTS WIZ_INDEX')
                     conn.query(CREATE_WIZ_INDEX_TABLE_SQL)
                     conn.query('PRAGMA auto_vacuum = FULL;')
-                    conn.query("UPDATE WIZ_INDEX_VERSION SET version=2 where name = 'version'")
+                    conn.query("UPDATE WIZ_INDEX_VERSION SET version=" + str(CURRENT_INDEX_VERSION) + " where name = 'version'")
 
                     if os.path.exists(self.index_path):
                         shutil.rmtree(self.index_path)
 
-                    if not os.path.exists(self.index_path):
-                        os.mkdir(self.index_path)
         except:
             pass
+
+        # 如果目录不存在。创建索引目录
+        if not os.path.exists(self.index_path):
+            os.mkdir(self.index_path)
 
         analyzer = ChineseAnalyzer()
         self.schema = Schema(
