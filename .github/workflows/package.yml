@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019, ubuntu-20.04, macos-11]
+        os: [windows-2019, ubuntu-20.04, macos-13]
         python-version: [3.8]
 
     steps:
@@ -62,7 +62,7 @@ jobs:
           dist/
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Dev-Build-for-${{ runner.os }}
         path: Wiz.Search-${{ runner.os }}.zip
@@ -74,7 +74,7 @@ jobs:
     steps:
 
     - name: Download pre-built packages
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
 
