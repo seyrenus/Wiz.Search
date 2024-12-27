@@ -62,29 +62,47 @@
                                 <el-col :span="12">
                                     <div class="label-wrapper">
                                         <label>创建时间</label>
-                                        <el-date-picker
-                                            v-model="createDateRange"
-                                            type="daterange"
-                                            range-separator="至"
-                                            start-placeholder="开始日期"
-                                            end-placeholder="结束日期"
-                                            value-format="yyyy-MM-dd"
-                                            style="width: 100%">
-                                        </el-date-picker>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <el-date-picker
+                                                v-model="createStartDate"
+                                                type="date"
+                                                :picker-options="pickerOptions"
+                                                placeholder="开始日期"
+                                                value-format="yyyy-MM-dd"
+                                                style="flex: 1; margin-right: 10px;">
+                                            </el-date-picker>
+                                            <el-date-picker
+                                                v-model="createEndDate"
+                                                type="date"
+                                                :picker-options="pickerOptions"
+                                                placeholder="结束日期"
+                                                value-format="yyyy-MM-dd"
+                                                style="flex: 1;">
+                                            </el-date-picker>
+                                        </div>
                                     </div>
                                 </el-col>
                                 <el-col :span="12">
                                     <div class="label-wrapper">
                                         <label>更新时间</label>
-                                        <el-date-picker
-                                            v-model="modifyDateRange"
-                                            type="daterange"
-                                            range-separator="至"
-                                            start-placeholder="开始日期"
-                                            end-placeholder="结束日期"
-                                            value-format="yyyy-MM-dd"
-                                            style="width: 100%">
-                                        </el-date-picker>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <el-date-picker
+                                                v-model="modifyStartDate"
+                                                type="date"
+                                                :picker-options="pickerOptions"
+                                                placeholder="开始日期"
+                                                value-format="yyyy-MM-dd"
+                                                style="flex: 1; margin-right: 10px;">
+                                            </el-date-picker>
+                                            <el-date-picker
+                                                v-model="modifyEndDate"
+                                                type="date"
+                                                :picker-options="pickerOptions"
+                                                placeholder="结束日期"
+                                                value-format="yyyy-MM-dd"
+                                                style="flex: 1;">
+                                            </el-date-picker>
+                                        </div>
                                     </div>
                                 </el-col>
                             </el-row>
